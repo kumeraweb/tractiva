@@ -1,0 +1,29 @@
+---
+import { MessageCircle } from "@lucide/astro";
+---
+
+<nav class="site-nav" id="site-nav">
+    <div class="nav-inner">
+        <a href="/" class="nav-brand"
+            ><span class="brand-flip"
+                ><span class="brand-flip__face brand-flip__front"
+                    >tractiva<span class="brand-dot"></span></span
+                ><span class="brand-flip__face brand-flip__back"
+                    >tracción activa</span
+                ></span
+            ></a
+        >
+        <div class="nav-actions">
+            <a
+                href="https://wa.me/56912345678"
+                target="_blank"
+                rel="noopener"
+                class="nav-link"
+            >
+                <MessageCircle size={15} />
+                WhatsApp
+            </a>
+            <a href="#contacto" class="nav-cta">Agendar evaluación</a>
+        </div>
+    </div>
+</nav>
