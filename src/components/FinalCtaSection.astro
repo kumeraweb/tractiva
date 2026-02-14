@@ -104,10 +104,17 @@ import { MessageCircle, ArrowRight, Mail } from "@lucide/astro";
         status.classList.add("cta-form__status--ok");
         form.reset();
       } else {
-        throw new Error();
+        const payload = await res.json().catch(() => null);
+        const backendMessage =
+          payload?.error ||
+          (res.status === 403
+            ? "Solicitud bloqueada por seguridad. Intenta recargar la página."
+            : "Error al enviar. Intenta por WhatsApp.");
+        throw new Error(backendMessage);
       }
-    } catch {
-      status.textContent = "Error al enviar. Intenta por WhatsApp.";
+    } catch (err) {
+      status.textContent =
+        err instanceof Error ? err.message : "Error al enviar. Intenta por WhatsApp.";
       status.classList.add("cta-form__status--err");
     } finally {
       btn.disabled = false;

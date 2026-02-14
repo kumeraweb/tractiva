@@ -8,6 +8,10 @@ import tailwindcss from '@tailwindcss/vite';
 export default defineConfig({
   adapter: vercel(),
   output: 'server',
+  security: {
+    // Prevent false 403 responses on POST endpoints behind Vercel/custom domains.
+    checkOrigin: false
+  },
   vite: {
     plugins: [tailwindcss()]
   }

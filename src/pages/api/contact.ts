@@ -5,6 +5,10 @@ const resend = new Resend(import.meta.env.RESEND_API_KEY)
 
 export const POST: APIRoute = async ({ request }) => {
   try {
+    if (!import.meta.env.RESEND_API_KEY) {
+      return new Response(JSON.stringify({ error: 'Servicio de correo no configurado.' }), { status: 500 })
+    }
+
     const formData = await request.formData()
 
     const nombre = formData.get('nombre')?.toString() || ''
@@ -15,8 +19,8 @@ export const POST: APIRoute = async ({ request }) => {
       return new Response(JSON.stringify({ error: 'Nombre y email son requeridos.' }), { status: 400 })
     }
 
-    // 1. Email a contacto@kumeraweb.com
-    await resend.emails.send({
+    // 1. Email interno
+    const internalEmailResult = await resend.emails.send({
       from: 'Tractiva <contacto@kumeraweb.com>',
       to: 'contacto@kumeraweb.com',
       subject: `Nuevo contacto — ${nombre}`,
@@ -30,10 +34,15 @@ export const POST: APIRoute = async ({ request }) => {
           </table>
         </div>
       `
-    })
+    });
+
+    if (internalEmailResult.error) {
+      console.error('Error Resend (interno):', internalEmailResult.error)
+      return new Response(JSON.stringify({ error: 'No se pudo enviar el correo interno.' }), { status: 502 })
+    }
 
     // 2. Auto-respuesta al usuario
-    await resend.emails.send({
+    const autoReplyResult = await resend.emails.send({
       from: 'Tractiva <contacto@kumeraweb.com>',
       to: email,
       subject: 'Recibimos tu mensaje ✔️',
@@ -58,7 +67,12 @@ export const POST: APIRoute = async ({ request }) => {
           </div>
         </div>
       `
-    })
+    });
+
+    if (autoReplyResult.error) {
+      console.error('Error Resend (autorespuesta):', autoReplyResult.error)
+      return new Response(JSON.stringify({ error: 'Mensaje recibido, pero la confirmación falló.' }), { status: 502 })
+    }
 
     return new Response(JSON.stringify({ success: true }), { status: 200 })
   } catch (error) {
