@@ -2,27 +2,106 @@
 interface Props {
   title?: string;
   description?: string;
+  canonical?: string;
 }
+const SITE_URL = "https://tractiva.cl";
 const {
-  title = "tractiva — Google Ads que Sí Generan Consultas",
-  description = "Gestionamos campañas de Google Ads para profesionales en Chile que necesitan clientes reales cada mes. Sin contratos.",
+  title = "Gestión de Google Ads en Chile — Campañas que Generan Clientes | tractiva",
+  description = "Gestionamos campañas de Google Ads para profesionales y pymes en Chile. Optimización semanal, reportes claros y clientes reales desde $50.000/mes. Sin contratos de permanencia.",
+  canonical = SITE_URL,
 } = Astro.props;
 import "../styles/global.css";
 ---
 
 <!doctype html>
-<html lang="es">
+<html lang="es-CL">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content={description} />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href={canonical} />
+
+    <!-- SEO Core -->
     <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta
+      name="keywords"
+      content="google ads chile, gestión google ads, agencia google ads santiago, campañas google ads pymes, publicidad google chile, sem chile, google ads profesionales, ads para emprendedores chile"
+    />
+    <meta name="author" content="tractiva" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:site_name" content="tractiva" />
+    <meta property="og:locale" content="es_CL" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+
+    <!-- Theme -->
+    <meta name="theme-color" content="#000000" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap"
       rel="stylesheet"
+    />
+
+    <!-- Schema.org Structured Data -->
+    <script
+      type="application/ld+json"
+      set:html={JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "ProfessionalService",
+        name: "tractiva",
+        description:
+          "Gestión profesional de campañas de Google Ads para pymes y profesionales en Chile.",
+        url: SITE_URL,
+        telephone: "+56994186218",
+        email: "contacto@kumeraweb.com",
+        address: {
+          "@type": "PostalAddress",
+          addressCountry: "CL",
+          addressLocality: "Santiago",
+        },
+        areaServed: {
+          "@type": "Country",
+          name: "Chile",
+        },
+        priceRange: "$$",
+        currenciesAccepted: "CLP",
+        hasOfferCatalog: {
+          "@type": "OfferCatalog",
+          name: "Servicios Google Ads",
+          itemListElement: [
+            {
+              "@type": "Offer",
+              name: "Setup inicial de campaña Google Ads",
+              price: "75000",
+              priceCurrency: "CLP",
+              description:
+                "Configuración completa de cuenta, campañas, grupos de anuncios y landing page incluida.",
+            },
+            {
+              "@type": "Offer",
+              name: "Gestión mensual de Google Ads",
+              price: "50000",
+              priceCurrency: "CLP",
+              description:
+                "Optimización semanal, reportes de costo por lead, acceso total a la cuenta.",
+            },
+          ],
+        },
+        sameAs: ["https://wa.me/56994186218"],
+      })}
     />
   </head>
   <body>
