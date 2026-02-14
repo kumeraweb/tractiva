@@ -47,13 +47,15 @@ const crecimientoExtras = [
           <p class="pricing__plan-setup">Setup inicial (una vez): $79.000 + IVA</p>
         </div>
 
-        <ul class="pricing__plan-list">
-          {
-            baseFeatures.map((feature) => (
-              <li>{feature}</li>
-            ))
-          }
-        </ul>
+        <div class="pricing__plan-benefits">
+          <ul class="pricing__plan-list">
+            {
+              baseFeatures.map((feature) => (
+                <li>{feature}</li>
+              ))
+            }
+          </ul>
+        </div>
       </article>
 
       <article class="pricing__plan pricing__plan--recommended reveal reveal-delay-2" aria-label="Plan Crecimiento">
@@ -70,14 +72,16 @@ const crecimientoExtras = [
           <p class="pricing__plan-setup">Setup inicial: $99.000 + IVA</p>
         </div>
 
-        <p class="pricing__plan-note">Incluye todo lo anterior más:</p>
-        <ul class="pricing__plan-list">
-          {
-            crecimientoExtras.map((feature) => (
-              <li>{feature}</li>
-            ))
-          }
-        </ul>
+        <div class="pricing__plan-benefits">
+          <p class="pricing__plan-note">Incluye todo lo anterior más:</p>
+          <ul class="pricing__plan-list">
+            {
+              crecimientoExtras.map((feature) => (
+                <li>{feature}</li>
+              ))
+            }
+          </ul>
+        </div>
       </article>
 
       <article class="pricing__plan reveal reveal-delay-3" aria-label="Plan Escala">
@@ -88,13 +92,17 @@ const crecimientoExtras = [
           </p>
         </div>
 
-        <p class="pricing__plan-scale-copy">
-          Estructuras avanzadas, automatización estratégica y gestión personalizada.
-        </p>
+        <div class="pricing__plan-benefits">
+          <p class="pricing__plan-scale-copy">
+            Estructuras avanzadas, automatización estratégica y gestión personalizada.
+          </p>
+        </div>
 
-        <a class="pricing__plan-cta btn-secondary" href="#contacto">
-          Solicitar evaluación personalizada
-        </a>
+        <div class="pricing__plan-actions">
+          <a class="pricing__plan-cta btn-secondary" href="#contacto">
+            Solicitar evaluación personalizada
+          </a>
+        </div>
       </article>
     </div>
 
@@ -205,6 +213,16 @@ const crecimientoExtras = [
   .pricing__plan-prices {
     display: grid;
     gap: 0.5rem;
+  }
+
+  .pricing__plan-benefits {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .pricing__plan-actions {
+    display: flex;
+    align-items: flex-start;
   }
 
   .pricing__plan-price {
