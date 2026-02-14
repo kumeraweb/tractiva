@@ -100,9 +100,8 @@ import { MessageCircle, ArrowRight, Mail } from "@lucide/astro";
       });
 
       if (res.ok) {
-        status.textContent = "✓ Mensaje enviado. Te responderemos pronto.";
-        status.classList.add("cta-form__status--ok");
-        form.reset();
+        window.location.href = "/gracias";
+        return;
       } else {
         const payload = await res.json().catch(() => null);
         const backendMessage =

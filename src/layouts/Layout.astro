@@ -65,6 +65,22 @@ import "../styles/global.css";
       }
       gtag("js", new Date());
       gtag("config", "AW-17952824212");
+
+      function gtag_report_conversion(url) {
+        const callback = function () {
+          if (typeof url !== "undefined") {
+            window.location = url;
+          }
+        };
+        gtag("event", "conversion", {
+          send_to: "AW-17952824212/RoL-CLqotvgbEJS3yfBC",
+          value: 1.0,
+          currency: "CLP",
+          event_callback: callback,
+        });
+        return false;
+      }
+      window.gtag_report_conversion = gtag_report_conversion;
     </script>
 
     <!-- Schema.org Structured Data -->
@@ -201,6 +217,40 @@ import "../styles/global.css";
             trigger.setAttribute("aria-expanded", "true");
           }
         });
+      });
+
+      // Google Ads conversion tracking for WhatsApp and call clicks
+      document.addEventListener("click", (event) => {
+        const target = event.target;
+        if (!(target instanceof Element)) return;
+        const link = target.closest("a");
+        if (!link) return;
+
+        const href = link.getAttribute("href") || "";
+        const isWhatsapp =
+          href.startsWith("https://wa.me/") ||
+          href.startsWith("http://wa.me/") ||
+          href.includes("api.whatsapp.com");
+        const isPhoneCall = href.startsWith("tel:");
+        if (!isWhatsapp && !isPhoneCall) return;
+
+        if (typeof window.gtag_report_conversion !== "function") return;
+
+        const isModifiedClick =
+          event.ctrlKey ||
+          event.metaKey ||
+          event.shiftKey ||
+          event.altKey ||
+          event.button !== 0;
+        const opensNewTab = link.target === "_blank";
+
+        if (isModifiedClick || opensNewTab) {
+          window.gtag_report_conversion();
+          return;
+        }
+
+        event.preventDefault();
+        window.gtag_report_conversion(link.href);
       });
     </script>
   </body>
