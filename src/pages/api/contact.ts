@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro'
 import { Resend } from 'resend'
+import { insertLead } from '../../lib/server/supabase'
 
 const FROM_EMAIL = 'Tractiva <hola@tractiva.cl>'
 const INBOX_EMAIL = 'hola@tractiva.cl'
@@ -27,6 +28,12 @@ export const POST: APIRoute = async ({ request }) => {
       return new Response(JSON.stringify({ error: 'Nombre y email son requeridos.' }), {
         status: 400
       })
+    }
+
+    try {
+      await insertLead({ nombre, email, mensaje, source: 'contact_form' })
+    } catch (leadError) {
+      console.error('Supabase lead save error:', leadError)
     }
 
     // 1) Email interno
