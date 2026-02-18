@@ -8,6 +8,11 @@ const FROM_EMAIL = 'Tractiva <hola@tractiva.cl>'
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const RATE_LIMIT_MAX = Number(import.meta.env.PANEL_RESPONDER_RATE_LIMIT_MAX || 20)
 const RATE_LIMIT_WINDOW_SEC = Number(import.meta.env.PANEL_RESPONDER_RATE_LIMIT_WINDOW_SEC || 600)
+const toSimpleHtml = (value: string) =>
+  `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.6; color: #111827; white-space: pre-wrap;">${value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')}</div>`
 
 export const POST: APIRoute = async (context) => {
   try {
@@ -54,22 +59,26 @@ export const POST: APIRoute = async (context) => {
 
     let to = ''
     let subject = ''
-    let html = ''
+    let body = ''
+    let format: 'text' | 'html' = 'text'
 
     const contentType = request.headers.get('content-type') || ''
     if (contentType.includes('application/json')) {
-      const body = await request.json()
-      to = body?.to?.toString().trim() || ''
-      subject = body?.subject?.toString().trim() || ''
-      html = body?.html?.toString().trim() || ''
+      const payload = await request.json()
+      to = payload?.to?.toString().trim() || ''
+      subject = payload?.subject?.toString().trim() || ''
+      format = payload?.format === 'html' ? 'html' : 'text'
+      body = payload?.body?.toString() || payload?.html?.toString() || payload?.text?.toString() || ''
     } else {
       const formData = await request.formData()
       to = formData.get('to')?.toString().trim() || ''
       subject = formData.get('subject')?.toString().trim() || ''
-      html = formData.get('html')?.toString().trim() || ''
+      format = formData.get('format')?.toString() === 'html' ? 'html' : 'text'
+      body = formData.get('body')?.toString() || formData.get('html')?.toString() || ''
     }
+    body = body.trim()
 
-    if (!to || !subject || !html) {
+    if (!to || !subject || !body) {
       return new Response(JSON.stringify({ error: 'Faltan campos requeridos.' }), {
         status: 400,
         headers: {
@@ -93,7 +102,7 @@ export const POST: APIRoute = async (context) => {
       from: FROM_EMAIL,
       to,
       subject,
-      html
+      ...(format === 'html' ? { html: body } : { text: body, html: toSimpleHtml(body) })
     })
 
     if (result.error) {

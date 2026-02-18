@@ -39,7 +39,7 @@
       .grid { display: grid; gap: 16px; grid-template-columns: 1fr; }
       @media (min-width: 980px) { .grid { grid-template-columns: 1fr 1fr; } }
       label { display: block; font-size: .92rem; margin-bottom: 8px; color: #d1d5db; }
-      input, textarea {
+      input, textarea, select {
         width: 100%; margin-top: 6px; border-radius: 10px; border: 1px solid #2a2a2a;
         background: #0a0a0a; color: var(--text); padding: 10px 12px; font: inherit;
       }
@@ -60,6 +60,8 @@
       td { color: #e5e7eb; }
       .small { font-size: .82rem; color: var(--muted); }
       .mono { font-family: ui-monospace, Menlo, Monaco, Consolas, monospace; }
+      .row { display: flex; gap: 8px; align-items: end; }
+      .row > * { flex: 1; }
     </style>
   </head>
   <body>
@@ -91,7 +93,17 @@
             <form id="sendForm">
               <label>Destinatario<input type="email" name="to" required /></label>
               <label>Asunto<input type="text" name="subject" required /></label>
-              <label>Mensaje HTML<textarea name="html" required></textarea></label>
+              <div class="row">
+                <label>
+                  Formato
+                  <select name="format" id="formatSelect">
+                    <option value="text">Texto plano</option>
+                    <option value="html">HTML</option>
+                  </select>
+                </label>
+                <button type="button" id="templateBtn" class="btn-secondary">Cargar template</button>
+              </div>
+              <label>Mensaje<textarea name="body" id="messageBody" required></textarea></label>
               <button type="submit" id="sendBtn">Enviar correo</button>
             </form>
             <div id="sendStatus" class="status" aria-live="polite"></div>
@@ -135,6 +147,9 @@
       const sendForm = document.getElementById('sendForm');
       const sendBtn = document.getElementById('sendBtn');
       const sendStatus = document.getElementById('sendStatus');
+      const templateBtn = document.getElementById('templateBtn');
+      const formatSelect = document.getElementById('formatSelect');
+      const messageBody = document.getElementById('messageBody');
 
       const reloadLeadsBtn = document.getElementById('reloadLeadsBtn');
       const leadsBody = document.getElementById('leadsBody');
@@ -145,6 +160,25 @@
         el.textContent = message || '';
         el.className = `status ${kind}`.trim();
       };
+
+      const TEXT_TEMPLATE = `Hola {{nombre}},
+
+Gracias por tu mensaje.
+
+Quedo atento(a) a tus comentarios para avanzar.
+
+Saludos,
+Equipo Tractiva
+hola@tractiva.cl
+https://tractiva.cl`;
+
+      const HTML_TEMPLATE = `<p>Hola {{nombre}},</p>
+<p>Gracias por tu mensaje.</p>
+<p>Quedo atento(a) a tus comentarios para avanzar.</p>
+<br />
+<p>Saludos,<br />Equipo Tractiva<br />
+<a href="mailto:hola@tractiva.cl">hola@tractiva.cl</a><br />
+<a href="https://tractiva.cl">tractiva.cl</a></p>`;
 
       const escapeHtml = (value) =>
         value
@@ -261,7 +295,8 @@
         const payload = {
           to: (formData.get('to') || '').toString().trim(),
           subject: (formData.get('subject') || '').toString().trim(),
-          html: (formData.get('html') || '').toString()
+          format: (formData.get('format') || 'text').toString(),
+          body: (formData.get('body') || '').toString()
         };
 
         try {
@@ -283,6 +318,12 @@
           sendBtn.disabled = false;
           sendBtn.textContent = 'Enviar correo';
         }
+      });
+
+      templateBtn?.addEventListener('click', () => {
+        const format = formatSelect?.value || 'text';
+        if (!messageBody) return;
+        messageBody.value = format === 'html' ? HTML_TEMPLATE : TEXT_TEMPLATE;
       });
 
       reloadLeadsBtn?.addEventListener('click', loadLeads);
