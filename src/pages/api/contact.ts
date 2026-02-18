@@ -6,7 +6,9 @@ export const POST: APIRoute = async ({ request }) => {
     const apiKey = import.meta.env.RESEND_API_KEY
 
     if (!apiKey) {
-      return new Response(JSON.stringify({ error: 'Servicio de correo no configurado.' }), { status: 500 })
+      return new Response(JSON.stringify({ error: 'Servicio de correo no configurado.' }), {
+        status: 500
+      })
     }
 
     const resend = new Resend(apiKey)
@@ -18,34 +20,58 @@ export const POST: APIRoute = async ({ request }) => {
     const mensaje = formData.get('mensaje')?.toString() || ''
 
     if (!nombre || !email) {
-      return new Response(JSON.stringify({ error: 'Nombre y email son requeridos.' }), { status: 400 })
+      return new Response(JSON.stringify({ error: 'Nombre y email son requeridos.' }), {
+        status: 400
+      })
     }
 
-    // 1. Email interno
+    // 1️⃣ Email interno (a ti)
     const internalEmailResult = await resend.emails.send({
-      from: 'Tractiva <contacto@kumeraweb.com>',
+      from: 'Tractiva <no-reply@kumeraweb.com>',
+      replyTo: 'hola@tractiva.cl',
       to: 'contacto@kumeraweb.com',
       subject: `Nuevo contacto — ${nombre}`,
       html: `
         <div style="font-family: -apple-system, sans-serif; padding: 24px; max-width: 520px;">
-          <h2 style="font-size: 20px; color: #0f172a; margin: 0 0 20px;">Nuevo contacto desde tractiva.cl</h2>
+          <h2 style="font-size: 20px; color: #0f172a; margin: 0 0 20px;">
+            Nuevo contacto desde tractiva.cl
+          </h2>
           <table style="font-size: 15px; color: #334155; line-height: 1.6;">
-            <tr><td style="padding: 6px 12px 6px 0; font-weight: 600;">Nombre</td><td>${nombre}</td></tr>
-            <tr><td style="padding: 6px 12px 6px 0; font-weight: 600;">Email</td><td>${email}</td></tr>
-            ${mensaje ? `<tr><td style="padding: 6px 12px 6px 0; font-weight: 600; vertical-align: top;">Mensaje</td><td>${mensaje}</td></tr>` : ''}
+            <tr>
+              <td style="padding: 6px 12px 6px 0; font-weight: 600;">Nombre</td>
+              <td>${nombre}</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px 12px 6px 0; font-weight: 600;">Email</td>
+              <td>${email}</td>
+            </tr>
+            ${
+              mensaje
+                ? `
+            <tr>
+              <td style="padding: 6px 12px 6px 0; font-weight: 600; vertical-align: top;">
+                Mensaje
+              </td>
+              <td>${mensaje}</td>
+            </tr>`
+                : ''
+            }
           </table>
         </div>
       `
-    });
+    })
 
     if (internalEmailResult.error) {
       console.error('Error Resend (interno):', internalEmailResult.error)
-      return new Response(JSON.stringify({ error: 'No se pudo enviar el correo interno.' }), { status: 502 })
+      return new Response(JSON.stringify({ error: 'No se pudo enviar el correo interno.' }), {
+        status: 502
+      })
     }
 
-    // 2. Auto-respuesta al usuario
+    // 2️⃣ Auto-respuesta al usuario
     const autoReplyResult = await resend.emails.send({
-      from: 'Tractiva <contacto@kumeraweb.com>',
+      from: 'Tractiva <no-reply@kumeraweb.com>',
+      replyTo: 'hola@tractiva.cl',
       to: email,
       subject: 'Recibimos tu mensaje ✔️',
       html: `
@@ -55,7 +81,8 @@ export const POST: APIRoute = async ({ request }) => {
               Hola ${nombre} 👋
             </h2>
             <p style="font-size: 15px; line-height: 1.7; color: #94a3b8; margin: 0 0 24px;">
-              Tu mensaje llegó correctamente. Te responderemos dentro de las próximas <strong style="color: #fff;">24 horas</strong>.
+              Tu mensaje llegó correctamente. Te responderemos dentro de las próximas
+              <strong style="color: #fff;">24 horas</strong>.
             </p>
             <a href="https://wa.me/56994186218"
               style="display: inline-block; padding: 12px 24px; background: #22c55e; color: #000; border-radius: 6px; text-decoration: none; font-size: 14px; font-weight: 600;">
@@ -63,17 +90,20 @@ export const POST: APIRoute = async ({ request }) => {
             </a>
             <hr style="margin: 32px 0; border: 0; border-top: 1px solid #1e293b;" />
             <p style="font-size: 13px; color: #475569; margin: 0;">
-              tractiva — Google Ads para profesionales en Chile<br />
+              Tractiva — Google Ads para profesionales en Chile<br />
               © ${new Date().getFullYear()} Kümera Servicios Digitales
             </p>
           </div>
         </div>
       `
-    });
+    })
 
     if (autoReplyResult.error) {
       console.error('Error Resend (autorespuesta):', autoReplyResult.error)
-      return new Response(JSON.stringify({ error: 'Mensaje recibido, pero la confirmación falló.' }), { status: 502 })
+      return new Response(
+        JSON.stringify({ error: 'Mensaje recibido, pero la confirmación falló.' }),
+        { status: 502 }
+      )
     }
 
     return new Response(JSON.stringify({ success: true }), { status: 200 })
