@@ -39,10 +39,17 @@ export const getTrustedOrigins = (request: Request) => {
 }
 
 export const isTrustedOriginRequest = (request: Request) => {
+  const trusted = getTrustedOrigins(request)
+
   const originHeader = request.headers.get('origin')
   const origin = originHeader ? normalizeOrigin(originHeader) : null
-  if (!origin) return false
-  return getTrustedOrigins(request).has(origin)
+  if (origin && trusted.has(origin)) return true
+
+  const refererHeader = request.headers.get('referer')
+  const referer = refererHeader ? normalizeOrigin(refererHeader) : null
+  if (referer && trusted.has(referer)) return true
+
+  return false
 }
 
 export const rejectUntrustedOrigin = (context: APIContext) => {
