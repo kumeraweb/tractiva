@@ -31,8 +31,14 @@ export const getTrustedOrigins = (request: Request) => {
   const host = request.headers.get('x-forwarded-host') || request.headers.get('host')
   const proto = request.headers.get('x-forwarded-proto') || new URL(request.url).protocol.replace(':', '')
   if (host && proto) {
-    const origin = normalizeOrigin(`${proto}://${host}`)
+    const hostOnly = host.split(':')[0].toLowerCase()
+    const origin = normalizeOrigin(`${proto}://${hostOnly}`)
     if (origin) trusted.add(origin)
+
+    // Trust apex and www variants of the same host to avoid false negatives.
+    const alternateHost = hostOnly.startsWith('www.') ? hostOnly.slice(4) : `www.${hostOnly}`
+    const alternateOrigin = normalizeOrigin(`${proto}://${alternateHost}`)
+    if (alternateOrigin) trusted.add(alternateOrigin)
   }
 
   return trusted
