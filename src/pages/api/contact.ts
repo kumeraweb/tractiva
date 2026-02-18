@@ -73,7 +73,27 @@ export const POST: APIRoute = async ({ request }) => {
       from: FROM_EMAIL,
       to: email,
       replyTo: INBOX_EMAIL,
-      subject: 'Recibimos tu mensaje ✔️',
+      subject: 'Recibimos tu mensaje',
+      text: `Hola ${nombre},
+
+Recibimos tu mensaje correctamente.
+Te responderemos dentro de las próximas 24 horas.
+
+Si prefieres, también puedes escribirnos por WhatsApp:
+https://wa.me/56994186218
+
+Tractiva`,
+      headers: {
+        'Auto-Submitted': 'auto-replied',
+        'X-Auto-Response-Suppress': 'All'
+      },
+      attachments: [
+        {
+          filename: 'tractiva.png',
+          path: LOGO_URL,
+          contentId: 'tractiva-logo'
+        }
+      ],
       html: `
         <style>
           @media (prefers-color-scheme: dark) {
@@ -106,13 +126,13 @@ export const POST: APIRoute = async ({ request }) => {
             <div style="margin: 0 0 20px;">
               <img
                 class="logo-dark-invert"
-                src="${LOGO_URL}"
+                src="cid:tractiva-logo"
                 alt="Tractiva"
                 width="164"
                 style="display: block; width: 164px; max-width: 100%; height: auto;"
               />
             </div>
-            <h2 class="email-title" style="font-size: 22px; margin: 0 0 12px;">Hola ${nombre} 👋</h2>
+            <h2 class="email-title" style="font-size: 22px; margin: 0 0 12px;">Hola ${nombre}</h2>
             <p class="email-body" style="font-size: 15px; line-height: 1.7; color: #334155; margin: 0 0 18px;">
               Tu mensaje llegó correctamente. Te responderemos dentro de las próximas <strong>24 horas</strong>.
             </p>
