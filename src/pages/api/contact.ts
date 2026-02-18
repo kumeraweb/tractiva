@@ -1,18 +1,39 @@
 import type { APIRoute } from 'astro'
 import { Resend } from 'resend'
+import { consumeRateLimit } from '../../lib/server/rate-limit'
+import { getClientIp, rejectUntrustedOrigin } from '../../lib/server/security'
 import { insertLead } from '../../lib/server/supabase'
 
 const FROM_EMAIL = 'Tractiva <hola@tractiva.cl>'
 const INBOX_EMAIL = 'hola@tractiva.cl'
 const LOGO_URL = 'https://tractiva.cl/tractiva.png'
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const CONTACT_RATE_LIMIT_MAX = Number(import.meta.env.CONTACT_RATE_LIMIT_MAX || 6)
+const CONTACT_RATE_LIMIT_WINDOW_SEC = Number(import.meta.env.CONTACT_RATE_LIMIT_WINDOW_SEC || 600)
 
-export const POST: APIRoute = async ({ request }) => {
+const escapeHtml = (value: string) =>
+  value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;')
+
+export const POST: APIRoute = async (context) => {
   try {
+    const originError = rejectUntrustedOrigin(context)
+    if (originError) return originError
+
+    const { request } = context
     const apiKey = import.meta.env.RESEND_API_KEY
 
     if (!apiKey) {
       return new Response(JSON.stringify({ error: 'Servicio de correo no configurado.' }), {
-        status: 500
+        status: 500,
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-store, max-age=0'
+        }
       })
     }
 
@@ -21,14 +42,35 @@ export const POST: APIRoute = async ({ request }) => {
     const formData = await request.formData()
 
     const nombre = formData.get('nombre')?.toString() || ''
-    const email = formData.get('email')?.toString() || ''
+    const email = formData.get('email')?.toString().trim().toLowerCase() || ''
     const mensaje = formData.get('mensaje')?.toString() || ''
 
-    if (!nombre || !email) {
-      return new Response(JSON.stringify({ error: 'Nombre y email son requeridos.' }), {
-        status: 400
+    const rateKey = `contact:${getClientIp(request)}:${email}`
+    const limit = consumeRateLimit(rateKey, CONTACT_RATE_LIMIT_MAX, CONTACT_RATE_LIMIT_WINDOW_SEC * 1000)
+    if (!limit.allowed) {
+      return new Response(JSON.stringify({ error: 'Demasiados intentos. Intenta más tarde.' }), {
+        status: 429,
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-store, max-age=0',
+          'Retry-After': String(limit.retryAfterSeconds)
+        }
       })
     }
+
+    if (!nombre || !email || !EMAIL_REGEX.test(email)) {
+      return new Response(JSON.stringify({ error: 'Nombre y email son requeridos.' }), {
+        status: 400,
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-store, max-age=0'
+        }
+      })
+    }
+
+    const safeNombre = escapeHtml(nombre.slice(0, 120))
+    const safeEmail = escapeHtml(email.slice(0, 160))
+    const safeMensaje = escapeHtml(mensaje.slice(0, 4000))
 
     try {
       await insertLead({ nombre, email, mensaje, source: 'contact_form' })
@@ -48,18 +90,18 @@ export const POST: APIRoute = async ({ request }) => {
           <table style="font-size: 15px; color: #334155; line-height: 1.6; border-collapse: collapse;">
             <tr>
               <td style="padding: 6px 12px 6px 0; font-weight: 600;">Nombre</td>
-              <td>${nombre}</td>
+              <td>${safeNombre}</td>
             </tr>
             <tr>
               <td style="padding: 6px 12px 6px 0; font-weight: 600;">Email</td>
-              <td>${email}</td>
+              <td>${safeEmail}</td>
             </tr>
             ${
               mensaje
                 ? `
             <tr>
               <td style="padding: 6px 12px 6px 0; font-weight: 600; vertical-align: top;">Mensaje</td>
-              <td>${mensaje}</td>
+              <td>${safeMensaje}</td>
             </tr>`
                 : ''
             }
@@ -71,7 +113,11 @@ export const POST: APIRoute = async ({ request }) => {
     if (internalEmailResult.error) {
       console.error('Resend internal error:', internalEmailResult.error)
       return new Response(JSON.stringify({ error: 'No se pudo enviar el correo interno.' }), {
-        status: 502
+        status: 502,
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-store, max-age=0'
+        }
       })
     }
 
@@ -139,7 +185,7 @@ Tractiva`,
                 style="display: block; width: 164px; max-width: 100%; height: auto;"
               />
             </div>
-            <h2 class="email-title" style="font-size: 22px; margin: 0 0 12px;">Hola ${nombre}</h2>
+            <h2 class="email-title" style="font-size: 22px; margin: 0 0 12px;">Hola ${safeNombre}</h2>
             <p class="email-body" style="font-size: 15px; line-height: 1.7; color: #334155; margin: 0 0 18px;">
               Tu mensaje llegó correctamente. Te responderemos dentro de las próximas <strong>24 horas</strong>.
             </p>
@@ -163,13 +209,31 @@ Tractiva`,
       console.error('Resend autoreply error:', autoReplyResult.error)
       return new Response(
         JSON.stringify({ error: 'Mensaje recibido, pero la confirmación falló.' }),
-        { status: 502 }
+        {
+          status: 502,
+          headers: {
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-store, max-age=0'
+          }
+        }
       )
     }
 
-    return new Response(JSON.stringify({ success: true }), { status: 200 })
+    return new Response(JSON.stringify({ success: true }), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-store, max-age=0'
+      }
+    })
   } catch (error) {
     console.error('Error enviando correo:', error)
-    return new Response(JSON.stringify({ error: 'Error al enviar.' }), { status: 500 })
+    return new Response(JSON.stringify({ error: 'Error al enviar.' }), {
+      status: 500,
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-store, max-age=0'
+      }
+    })
   }
 }

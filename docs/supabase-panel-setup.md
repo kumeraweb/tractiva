@@ -76,6 +76,7 @@ Crea/actualiza `.env` en el root del proyecto:
 
 ```bash
 RESEND_API_KEY=re_xxxxxxxxx
+ALLOWED_ORIGINS=https://tractiva.cl,https://www.tractiva.cl
 
 SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
 SUPABASE_ANON_KEY=eyJ...
@@ -84,6 +85,10 @@ SUPABASE_LEADS_TABLE=leads
 PANEL_ALLOWED_EMAILS=admin@tractiva.cl,otroadmin@tractiva.cl
 PANEL_LOGIN_RATE_LIMIT_MAX=8
 PANEL_LOGIN_RATE_LIMIT_WINDOW_SEC=600
+PANEL_RESPONDER_RATE_LIMIT_MAX=20
+PANEL_RESPONDER_RATE_LIMIT_WINDOW_SEC=600
+CONTACT_RATE_LIMIT_MAX=6
+CONTACT_RATE_LIMIT_WINDOW_SEC=600
 ```
 
 Notas:
@@ -91,6 +96,7 @@ Notas:
 - No expongas `SUPABASE_SERVICE_ROLE_KEY` en frontend.
 - `PANEL_ALLOWED_EMAILS` es obligatorio para acceder al panel.
 - `PANEL_LOGIN_RATE_LIMIT_MAX` y `PANEL_LOGIN_RATE_LIMIT_WINDOW_SEC` controlan los intentos por IP+email.
+- `ALLOWED_ORIGINS` define los orígenes válidos para POST sensibles.
 
 ## 6) Variables en Vercel
 En `Vercel > Project > Settings > Environment Variables`, agrega las mismas:
@@ -99,9 +105,14 @@ En `Vercel > Project > Settings > Environment Variables`, agrega las mismas:
 - `SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `SUPABASE_LEADS_TABLE` (opcional)
+- `ALLOWED_ORIGINS`
 - `PANEL_ALLOWED_EMAILS`
 - `PANEL_LOGIN_RATE_LIMIT_MAX` (opcional)
 - `PANEL_LOGIN_RATE_LIMIT_WINDOW_SEC` (opcional)
+- `PANEL_RESPONDER_RATE_LIMIT_MAX` (opcional)
+- `PANEL_RESPONDER_RATE_LIMIT_WINDOW_SEC` (opcional)
+- `CONTACT_RATE_LIMIT_MAX` (opcional)
+- `CONTACT_RATE_LIMIT_WINDOW_SEC` (opcional)
 
 Después:
 1. Guarda variables
@@ -110,6 +121,8 @@ Después:
 ## 7) Flujo implementado en el proyecto
 - `POST /api/contact`:
   - Guarda lead en Supabase (`public.leads`)
+  - Aplica validación de origen confiable
+  - Aplica rate limit por IP+email
   - Envía mail interno + autorespuesta
 - `GET /panel`:
   - UI de login + envío manual + tabla de leads
@@ -126,6 +139,7 @@ Después:
   - Ruta protegida, lista leads
 - `POST /api/responder`:
   - Ruta protegida, envía correo manual con Resend
+  - Aplica validación de origen confiable + rate limit
 
 ## 8) Prueba rápida
 1. `npm run dev`

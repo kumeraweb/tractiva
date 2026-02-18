@@ -1,27 +1,53 @@
 import type { APIRoute } from 'astro'
 import { Resend } from 'resend'
+import { consumeRateLimit } from '../../lib/server/rate-limit'
+import { getClientIp, rejectUntrustedOrigin } from '../../lib/server/security'
 import { requirePanelUser } from '../../lib/server/supabase'
 
 const FROM_EMAIL = 'Tractiva <hola@tractiva.cl>'
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const RATE_LIMIT_MAX = Number(import.meta.env.PANEL_RESPONDER_RATE_LIMIT_MAX || 20)
+const RATE_LIMIT_WINDOW_SEC = Number(import.meta.env.PANEL_RESPONDER_RATE_LIMIT_WINDOW_SEC || 600)
 
 export const POST: APIRoute = async (context) => {
   try {
+    const originError = rejectUntrustedOrigin(context)
+    if (originError) return originError
+
     const user = await requirePanelUser(context)
     if (!user) {
       return new Response(JSON.stringify({ error: 'No autenticado.' }), {
         status: 401,
-        headers: { 'Content-Type': 'application/json' }
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-store, max-age=0'
+        }
       })
     }
 
     const { request } = context
+    const rateKey = `panel-responder:${getClientIp(request)}:${user.id}`
+    const limit = consumeRateLimit(rateKey, RATE_LIMIT_MAX, RATE_LIMIT_WINDOW_SEC * 1000)
+    if (!limit.allowed) {
+      return new Response(JSON.stringify({ error: 'Demasiados envíos. Intenta más tarde.' }), {
+        status: 429,
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-store, max-age=0',
+          'Retry-After': String(limit.retryAfterSeconds)
+        }
+      })
+    }
+
     const apiKey = import.meta.env.RESEND_API_KEY
 
     if (!apiKey) {
       return new Response(JSON.stringify({ error: 'Servicio de correo no configurado.' }), {
         status: 500,
-        headers: { 'Content-Type': 'application/json' }
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-store, max-age=0'
+        }
       })
     }
     const resend = new Resend(apiKey)
@@ -46,14 +72,20 @@ export const POST: APIRoute = async (context) => {
     if (!to || !subject || !html) {
       return new Response(JSON.stringify({ error: 'Faltan campos requeridos.' }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json' }
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-store, max-age=0'
+        }
       })
     }
 
     if (!EMAIL_REGEX.test(to)) {
       return new Response(JSON.stringify({ error: 'El destinatario no es válido.' }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json' }
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-store, max-age=0'
+        }
       })
     }
 
@@ -68,19 +100,28 @@ export const POST: APIRoute = async (context) => {
       console.error('Resend responder error:', result.error)
       return new Response(JSON.stringify({ error: 'No se pudo enviar el correo.' }), {
         status: 502,
-        headers: { 'Content-Type': 'application/json' }
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-store, max-age=0'
+        }
       })
     }
 
     return new Response(JSON.stringify({ success: true }), {
       status: 200,
-      headers: { 'Content-Type': 'application/json' }
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-store, max-age=0'
+      }
     })
   } catch (error) {
     console.error('Responder API error:', error)
     return new Response(JSON.stringify({ error: 'Error al enviar.' }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' }
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-store, max-age=0'
+      }
     })
   }
 }

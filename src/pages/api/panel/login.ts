@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro'
 import { consumeRateLimit, resetRateLimit } from '../../../lib/server/rate-limit'
+import { getClientIp, rejectUntrustedOrigin } from '../../../lib/server/security'
 import {
   createSupabaseAnonClient,
   getSupabaseConfig,
@@ -9,19 +10,29 @@ import {
 const RATE_LIMIT_MAX = Number(import.meta.env.PANEL_LOGIN_RATE_LIMIT_MAX || 8)
 const RATE_LIMIT_WINDOW_SEC = Number(import.meta.env.PANEL_LOGIN_RATE_LIMIT_WINDOW_SEC || 600)
 
-const getClientIp = (request: Request) => {
-  const xff = request.headers.get('x-forwarded-for')
-  if (xff) return xff.split(',')[0]?.trim() || 'unknown'
-  return request.headers.get('x-real-ip') || 'unknown'
-}
+const authErrorResponse = () =>
+  new Response(JSON.stringify({ error: 'Credenciales inválidas.' }), {
+    status: 401,
+    headers: {
+      'Content-Type': 'application/json',
+      'Cache-Control': 'no-store, max-age=0'
+    }
+  })
 
-export const POST: APIRoute = async ({ request, cookies }) => {
+export const POST: APIRoute = async (context) => {
   try {
+    const originError = rejectUntrustedOrigin(context)
+    if (originError) return originError
+
+    const { request, cookies } = context
     const { url, anonKey } = getSupabaseConfig()
     if (!url || !anonKey) {
       return new Response(JSON.stringify({ error: 'Supabase no configurado.' }), {
         status: 500,
-        headers: { 'Content-Type': 'application/json' }
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-store, max-age=0'
+        }
       })
     }
 
@@ -37,45 +48,34 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         status: 429,
         headers: {
           'Content-Type': 'application/json',
+          'Cache-Control': 'no-store, max-age=0',
           'Retry-After': String(limit.retryAfterSeconds)
         }
       })
     }
 
     if (!email || !password) {
-      return new Response(JSON.stringify({ error: 'Email y contraseña son requeridos.' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' }
-      })
+      return authErrorResponse()
     }
 
     if (!isPanelEmailAllowed(email)) {
-      return new Response(JSON.stringify({ error: 'Usuario no autorizado para este panel.' }), {
-        status: 403,
-        headers: { 'Content-Type': 'application/json' }
-      })
+      return authErrorResponse()
     }
 
     const supabase = createSupabaseAnonClient()
     const { data, error } = await supabase.auth.signInWithPassword({ email, password })
     if (error || !data.session) {
-      return new Response(JSON.stringify({ error: 'Credenciales inválidas.' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' }
-      })
+      return authErrorResponse()
     }
 
     if (!isPanelEmailAllowed(data.user?.email)) {
-      return new Response(JSON.stringify({ error: 'Usuario no autorizado para este panel.' }), {
-        status: 403,
-        headers: { 'Content-Type': 'application/json' }
-      })
+      return authErrorResponse()
     }
 
     cookies.set('sb_access_token', data.session.access_token, {
       httpOnly: true,
       secure: import.meta.env.PROD,
-      sameSite: 'lax',
+      sameSite: 'strict',
       path: '/',
       maxAge: data.session.expires_in || 3600
     })
@@ -83,13 +83,19 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
     return new Response(JSON.stringify({ success: true }), {
       status: 200,
-      headers: { 'Content-Type': 'application/json' }
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-store, max-age=0'
+      }
     })
   } catch (error) {
     console.error('Panel login error:', error)
     return new Response(JSON.stringify({ error: 'No se pudo iniciar sesión.' }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' }
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-store, max-age=0'
+      }
     })
   }
 }
