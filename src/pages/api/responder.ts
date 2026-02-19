@@ -1,8 +1,8 @@
 import type { APIRoute } from 'astro'
 import { Resend } from 'resend'
 import { consumeRateLimit } from '../../lib/server/rate-limit'
+import { requirePanelSession } from '../../lib/server/panel-auth'
 import { getClientIp, rejectUntrustedOrigin } from '../../lib/server/security'
-import { requirePanelUser } from '../../lib/server/supabase'
 
 const FROM_EMAIL = 'Tractiva <hola@tractiva.cl>'
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -19,8 +19,7 @@ export const POST: APIRoute = async (context) => {
     const originError = rejectUntrustedOrigin(context)
     if (originError) return originError
 
-    const user = await requirePanelUser(context)
-    if (!user) {
+    if (!(await requirePanelSession(context))) {
       return new Response(JSON.stringify({ error: 'No autenticado.' }), {
         status: 401,
         headers: {
@@ -31,7 +30,7 @@ export const POST: APIRoute = async (context) => {
     }
 
     const { request } = context
-    const rateKey = `panel-responder:${getClientIp(request)}:${user.id}`
+    const rateKey = `panel-responder:${getClientIp(request)}`
     const limit = consumeRateLimit(rateKey, RATE_LIMIT_MAX, RATE_LIMIT_WINDOW_SEC * 1000)
     if (!limit.allowed) {
       return new Response(JSON.stringify({ error: 'Demasiados envíos. Intenta más tarde.' }), {

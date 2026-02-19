@@ -1,9 +1,9 @@
 import type { APIRoute } from 'astro'
-import { requirePanelUser } from '../../../lib/server/supabase'
+import { requirePanelSession } from '../../../lib/server/panel-auth'
 
 export const GET: APIRoute = async (context) => {
-  const user = await requirePanelUser(context)
-  if (!user) {
+  const isAuthenticated = await requirePanelSession(context)
+  if (!isAuthenticated) {
     return new Response(JSON.stringify({ error: 'No autenticado.' }), {
       status: 401,
       headers: {
@@ -13,7 +13,7 @@ export const GET: APIRoute = async (context) => {
     })
   }
 
-  return new Response(JSON.stringify({ user }), {
+  return new Response(JSON.stringify({ user: { id: 'panel' } }), {
     status: 200,
     headers: {
       'Content-Type': 'application/json',

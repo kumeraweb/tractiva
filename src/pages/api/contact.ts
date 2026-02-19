@@ -2,7 +2,6 @@ import type { APIRoute } from 'astro'
 import { Resend } from 'resend'
 import { consumeRateLimit } from '../../lib/server/rate-limit'
 import { getClientIp, rejectUntrustedOrigin } from '../../lib/server/security'
-import { insertLead } from '../../lib/server/supabase'
 
 const FROM_EMAIL = 'Tractiva <hola@tractiva.cl>'
 const INBOX_EMAIL = 'hola@tractiva.cl'
@@ -71,12 +70,6 @@ export const POST: APIRoute = async (context) => {
     const safeNombre = escapeHtml(nombre.slice(0, 120))
     const safeEmail = escapeHtml(email.slice(0, 160))
     const safeMensaje = escapeHtml(mensaje.slice(0, 4000))
-
-    try {
-      await insertLead({ nombre, email, mensaje, source: 'contact_form' })
-    } catch (leadError) {
-      console.error('Supabase lead save error:', leadError)
-    }
 
     // 1) Email interno
     const internalEmailResult = await resend.emails.send({

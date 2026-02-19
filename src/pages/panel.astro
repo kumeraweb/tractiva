@@ -26,7 +26,7 @@
         background: var(--bg);
         color: var(--text);
       }
-      .wrap { max-width: 1120px; margin: 0 auto; padding: 24px; }
+      .wrap { max-width: 900px; margin: 0 auto; padding: 24px; }
       .hidden { display: none !important; }
       .card {
         background: var(--panel);
@@ -36,14 +36,12 @@
       }
       h1,h2 { margin: 0 0 12px; }
       p { color: var(--muted); margin: 0 0 12px; }
-      .grid { display: grid; gap: 16px; grid-template-columns: 1fr; }
-      @media (min-width: 980px) { .grid { grid-template-columns: 1fr 1fr; } }
       label { display: block; font-size: .92rem; margin-bottom: 8px; color: #d1d5db; }
       input, textarea, select {
         width: 100%; margin-top: 6px; border-radius: 10px; border: 1px solid #2a2a2a;
         background: #0a0a0a; color: var(--text); padding: 10px 12px; font: inherit;
       }
-      textarea { min-height: 170px; resize: vertical; }
+      textarea { min-height: 190px; resize: vertical; }
       button {
         border: 0; border-radius: 10px; padding: 11px 14px;
         background: var(--green); color: #fff; font: inherit; font-weight: 600; cursor: pointer;
@@ -54,12 +52,7 @@
       .status { min-height: 20px; font-size: .92rem; margin-top: 8px; }
       .ok { color: #4ade80; }
       .err { color: var(--danger); }
-      table { width: 100%; border-collapse: collapse; font-size: .92rem; }
-      th, td { text-align: left; border-bottom: 1px solid #232323; padding: 10px 8px; vertical-align: top; }
-      th { color: #d1d5db; font-weight: 600; }
-      td { color: #e5e7eb; }
       .small { font-size: .82rem; color: var(--muted); }
-      .mono { font-family: ui-monospace, Menlo, Monaco, Consolas, monospace; }
       .row { display: flex; gap: 8px; align-items: end; }
       .row > * { flex: 1; }
     </style>
@@ -68,9 +61,8 @@
     <main class="wrap">
       <section id="loginView" class="card">
         <h1>Panel Tractiva</h1>
-        <p>Inicia sesión con un usuario de Supabase Auth para acceder al panel.</p>
+        <p>Acceso protegido por contraseña.</p>
         <form id="loginForm">
-          <label>Email<input type="email" name="email" required /></label>
           <label>Contraseña<input type="password" name="password" required /></label>
           <button type="submit" id="loginBtn">Entrar</button>
         </form>
@@ -81,63 +73,38 @@
         <div class="toolbar">
           <div>
             <h1>Panel Tractiva</h1>
-            <p class="small">Sesión activa: <span id="sessionEmail" class="mono"></span></p>
+            <p class="small">Sesión activa</p>
           </div>
           <button id="logoutBtn" class="btn-secondary" type="button">Cerrar sesión</button>
         </div>
 
-        <div class="grid">
-          <article class="card">
-            <h2>Responder manual</h2>
-            <p>Enviar correo de prueba desde <strong>hola@tractiva.cl</strong>.</p>
-            <form id="sendForm">
-              <label>Destinatario<input type="email" name="to" required /></label>
-              <label>Asunto<input type="text" name="subject" required /></label>
-              <div class="row">
-                <label>
-                  Formato
-                  <select name="format" id="formatSelect">
-                    <option value="text">Texto plano</option>
-                    <option value="html">HTML</option>
-                  </select>
-                </label>
-                <button type="button" id="templateBtn" class="btn-secondary">Cargar template</button>
-              </div>
-              <label>Mensaje<textarea name="body" id="messageBody" required></textarea></label>
-              <button type="submit" id="sendBtn">Enviar correo</button>
-            </form>
-            <div id="sendStatus" class="status" aria-live="polite"></div>
-          </article>
-
-          <article class="card">
-            <h2>Leads</h2>
-            <p>Últimos registros guardados desde el formulario público.</p>
-            <button id="reloadLeadsBtn" type="button" class="btn-secondary">Actualizar</button>
-            <div id="leadsStatus" class="status" aria-live="polite"></div>
-            <div style="overflow:auto; margin-top: 10px;">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Fecha</th>
-                    <th>Nombre</th>
-                    <th>Email</th>
-                    <th>Mensaje</th>
-                  </tr>
-                </thead>
-                <tbody id="leadsBody">
-                  <tr><td colspan="4" class="small">Sin datos aún.</td></tr>
-                </tbody>
-              </table>
+        <article class="card">
+          <h2>Responder manual</h2>
+          <p>Enviar correo de prueba desde <strong>hola@tractiva.cl</strong>.</p>
+          <form id="sendForm">
+            <label>Destinatario<input type="email" name="to" required /></label>
+            <label>Asunto<input type="text" name="subject" required /></label>
+            <div class="row">
+              <label>
+                Formato
+                <select name="format" id="formatSelect">
+                  <option value="text">Texto plano</option>
+                  <option value="html">HTML</option>
+                </select>
+              </label>
+              <button type="button" id="templateBtn" class="btn-secondary">Cargar template</button>
             </div>
-          </article>
-        </div>
+            <label>Mensaje<textarea name="body" id="messageBody" required></textarea></label>
+            <button type="submit" id="sendBtn">Enviar correo</button>
+          </form>
+          <div id="sendStatus" class="status" aria-live="polite"></div>
+        </article>
       </section>
     </main>
 
     <script>
       const loginView = document.getElementById('loginView');
       const panelView = document.getElementById('panelView');
-      const sessionEmail = document.getElementById('sessionEmail');
 
       const loginForm = document.getElementById('loginForm');
       const loginBtn = document.getElementById('loginBtn');
@@ -150,10 +117,6 @@
       const templateBtn = document.getElementById('templateBtn');
       const formatSelect = document.getElementById('formatSelect');
       const messageBody = document.getElementById('messageBody');
-
-      const reloadLeadsBtn = document.getElementById('reloadLeadsBtn');
-      const leadsBody = document.getElementById('leadsBody');
-      const leadsStatus = document.getElementById('leadsStatus');
 
       const setStatus = (el, message, kind = '') => {
         if (!el) return;
@@ -180,63 +143,16 @@ https://tractiva.cl`;
 <a href="mailto:hola@tractiva.cl">hola@tractiva.cl</a><br />
 <a href="https://tractiva.cl">tractiva.cl</a></p>`;
 
-      const escapeHtml = (value) =>
-        value
-          .replaceAll('&', '&amp;')
-          .replaceAll('<', '&lt;')
-          .replaceAll('>', '&gt;')
-          .replaceAll('"', '&quot;')
-          .replaceAll("'", '&#39;');
-
-      const renderLeads = (leads) => {
-        if (!leadsBody) return;
-        if (!Array.isArray(leads) || leads.length === 0) {
-          leadsBody.innerHTML = '<tr><td colspan="4" class="small">Sin leads todavía.</td></tr>';
-          return;
-        }
-        leadsBody.innerHTML = leads
-          .map((lead) => {
-            const fecha = lead.created_at ? new Date(lead.created_at).toLocaleString('es-CL') : '-';
-            const mensaje = (lead.mensaje || '').slice(0, 180);
-            return `<tr>
-              <td class="small">${escapeHtml(fecha)}</td>
-              <td>${escapeHtml(lead.nombre || '')}</td>
-              <td class="mono">${escapeHtml(lead.email || '')}</td>
-              <td>${escapeHtml(mensaje)}</td>
-            </tr>`;
-          })
-          .join('');
-      };
-
-      const loadLeads = async () => {
-        setStatus(leadsStatus, 'Cargando leads...');
-        try {
-          const response = await fetch('/api/panel/leads');
-          const data = await response.json();
-          if (!response.ok) {
-            setStatus(leadsStatus, data?.error || 'No se pudo cargar leads.', 'err');
-            return;
-          }
-          renderLeads(data.leads);
-          setStatus(leadsStatus, `Leads cargados: ${data.leads.length}`, 'ok');
-        } catch {
-          setStatus(leadsStatus, 'Error de red cargando leads.', 'err');
-        }
-      };
-
-      const showPanel = async (email) => {
-        if (sessionEmail) sessionEmail.textContent = email || 'usuario';
+      const showPanel = () => {
         loginView?.classList.add('hidden');
         panelView?.classList.remove('hidden');
-        await loadLeads();
       };
 
       const checkSession = async () => {
         try {
           const response = await fetch('/api/panel/me');
           if (!response.ok) return;
-          const data = await response.json();
-          await showPanel(data?.user?.email || '');
+          showPanel();
         } catch {
           // no-op
         }
@@ -251,7 +167,6 @@ https://tractiva.cl`;
 
         const formData = new FormData(loginForm);
         const payload = {
-          email: (formData.get('email') || '').toString().trim(),
           password: (formData.get('password') || '').toString()
         };
 
@@ -267,7 +182,7 @@ https://tractiva.cl`;
             return;
           }
           setStatus(loginStatus, 'Sesión iniciada.', 'ok');
-          await showPanel(payload.email);
+          showPanel();
         } catch {
           setStatus(loginStatus, 'Error de red al iniciar sesión.', 'err');
         } finally {
@@ -326,7 +241,6 @@ https://tractiva.cl`;
         messageBody.value = format === 'html' ? HTML_TEMPLATE : TEXT_TEMPLATE;
       });
 
-      reloadLeadsBtn?.addEventListener('click', loadLeads);
       checkSession();
     </script>
   </body>

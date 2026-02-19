@@ -1,17 +1,13 @@
 import type { APIRoute } from 'astro'
 import { consumeRateLimit, resetRateLimit } from '../../../lib/server/rate-limit'
+import { clearPanelSessionCookie, isPanelPasswordConfigured, isValidPanelPassword, setPanelSessionCookie } from '../../../lib/server/panel-auth'
 import { getClientIp, rejectUntrustedOrigin } from '../../../lib/server/security'
-import {
-  createSupabaseAnonClient,
-  getSupabaseConfig,
-  isPanelEmailAllowed
-} from '../../../lib/server/supabase'
 
 const RATE_LIMIT_MAX = Number(import.meta.env.PANEL_LOGIN_RATE_LIMIT_MAX || 8)
 const RATE_LIMIT_WINDOW_SEC = Number(import.meta.env.PANEL_LOGIN_RATE_LIMIT_WINDOW_SEC || 600)
 
 const authErrorResponse = () =>
-  new Response(JSON.stringify({ error: 'Credenciales inválidas.' }), {
+  new Response(JSON.stringify({ error: 'Contraseña inválida.' }), {
     status: 401,
     headers: {
       'Content-Type': 'application/json',
@@ -24,10 +20,8 @@ export const POST: APIRoute = async (context) => {
     const originError = rejectUntrustedOrigin(context)
     if (originError) return originError
 
-    const { request, cookies } = context
-    const { url, anonKey } = getSupabaseConfig()
-    if (!url || !anonKey) {
-      return new Response(JSON.stringify({ error: 'Supabase no configurado.' }), {
+    if (!isPanelPasswordConfigured()) {
+      return new Response(JSON.stringify({ error: 'Panel no configurado.' }), {
         status: 500,
         headers: {
           'Content-Type': 'application/json',
@@ -36,11 +30,9 @@ export const POST: APIRoute = async (context) => {
       })
     }
 
-    const body = await request.json()
-    const email = body?.email?.toString().trim() || ''
-    const password = body?.password?.toString() || ''
+    const { request, cookies } = context
     const ip = getClientIp(request)
-    const rateKey = `panel-login:${ip}:${email.toLowerCase()}`
+    const rateKey = `panel-login:${ip}`
 
     const limit = consumeRateLimit(rateKey, RATE_LIMIT_MAX, RATE_LIMIT_WINDOW_SEC * 1000)
     if (!limit.allowed) {
@@ -54,31 +46,23 @@ export const POST: APIRoute = async (context) => {
       })
     }
 
-    if (!email || !password) {
+    const contentType = request.headers.get('content-type') || ''
+    let password = ''
+
+    if (contentType.includes('application/json')) {
+      const body = await request.json()
+      password = body?.password?.toString() || ''
+    } else {
+      const formData = await request.formData()
+      password = formData.get('password')?.toString() || ''
+    }
+
+    if (!password || !isValidPanelPassword(password)) {
+      clearPanelSessionCookie(cookies)
       return authErrorResponse()
     }
 
-    if (!isPanelEmailAllowed(email)) {
-      return authErrorResponse()
-    }
-
-    const supabase = createSupabaseAnonClient()
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error || !data.session) {
-      return authErrorResponse()
-    }
-
-    if (!isPanelEmailAllowed(data.user?.email)) {
-      return authErrorResponse()
-    }
-
-    cookies.set('sb_access_token', data.session.access_token, {
-      httpOnly: true,
-      secure: import.meta.env.PROD,
-      sameSite: 'strict',
-      path: '/',
-      maxAge: data.session.expires_in || 3600
-    })
+    await setPanelSessionCookie(cookies)
     resetRateLimit(rateKey)
 
     return new Response(JSON.stringify({ success: true }), {
