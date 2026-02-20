@@ -126,7 +126,7 @@ Recibimos tu mensaje correctamente.
 Te responderemos dentro de las próximas 24 horas.
 
 Si prefieres, también puedes escribirnos por WhatsApp:
-https://wa.me/56994186218
+https://wa.me/56987435207
 
 Tractiva`,
       headers: {
@@ -183,7 +183,7 @@ Tractiva`,
               Tu mensaje llegó correctamente. Te responderemos dentro de las próximas <strong>24 horas</strong>.
             </p>
             <a
-              href="https://wa.me/56994186218"
+              href="https://wa.me/56987435207"
               style="display: inline-block; padding: 11px 18px; background: #16a34a; color: #ffffff; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 600;"
             >
               Escribir por WhatsApp
