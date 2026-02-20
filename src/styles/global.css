@@ -640,3 +640,82 @@ ol {
   color: var(--gray-500);
   max-width: 32rem;
 }
+/* ===== MOBILE WHATSAPP FLOAT ===== */
+@keyframes wsOrbitSpin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes wsPulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 10px 24px rgba(22, 163, 74, 0.36);
+  }
+
+  50% {
+    transform: scale(1.06);
+    box-shadow: 0 14px 34px rgba(22, 163, 74, 0.48);
+  }
+
+  100% {
+    transform: scale(1);
+    box-shadow: 0 10px 24px rgba(22, 163, 74, 0.36);
+  }
+}
+
+.ws-float {
+  position: fixed;
+  right: 0.9rem;
+  bottom: 0.9rem;
+  width: 92px;
+  height: 92px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 180;
+  color: var(--black);
+}
+
+.ws-float__orbit {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  animation: wsOrbitSpin 22s linear infinite;
+}
+
+.ws-float__orbit text {
+  font-family: var(--font-display);
+  font-size: 8.2px;
+  letter-spacing: 1.1px;
+  fill: #14532d;
+  font-weight: 700;
+}
+
+.ws-float__btn {
+  width: 52px;
+  height: 52px;
+  border-radius: 999px;
+  background: linear-gradient(145deg, #4ade80, #16a34a 58%, #15803d);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: wsPulse 2.4s ease-in-out infinite;
+}
+
+.ws-float__icon {
+  width: 28px;
+  height: 28px;
+  color: var(--white);
+}
+
+@media (max-width: 900px) {
+  .ws-float {
+    display: inline-flex;
+  }
+}
